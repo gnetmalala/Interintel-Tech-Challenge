@@ -159,6 +159,28 @@ A node is a worker machine in Kubernetes, previously known as a minion. A node m
 
 In order for a worker node to join a cluster, it must trust the cluster’s control plane, and the control plane must trust the worker node. This trust is managed via a shared bootstrap token and a certificate authority (CA) key hash. kubeadm handles the exchange between the control plane and the worker node.
 
+      - hosts: master
+        become: yes
+        gather_facts: false
+        tasks:
+          - name: get join command
+            shell: kubeadm token create --print-join-command
+            register: join_command_raw
+
+          - name: set join command
+            set_fact:
+              join_command: "{{ join_command_raw.stdout_lines[0] }}"
+
+
+      - hosts: workers
+        become: yes
+        tasks:
+          - name: join cluster
+            shell: "{{ hostvars['master'].join_command }} --ignore-preflight-errors all  >> node_joined.txt"
+            args:
+              chdir: $HOME
+              creates: node_joined.txt
+
 
 ## Monitoring
 Monitoring is an important component of observability. With all our applications running along-with the various tools, we need to keep an eye on each as well as the underlying frameworks and infrastructure. This helps us ensure and stay in the know of how each component is performing and whether they are achieving the availability and performance expectations that they are supposed to. Monitoring helps us gain insight into cloud-native systems, and combined with alerting it allows DevOps engineers to observe scaled-out applications. 
